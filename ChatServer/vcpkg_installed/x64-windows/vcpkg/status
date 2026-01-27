@@ -1,0 +1,48 @@
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 58f794e09ee7d2f970d5b95e82c141308fc0da71bc84eafc58f0e6d4a3928be3
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 1dc70404ab567f183a9a04effdab01aef2c403b8bd8c75d86d30a0e99d8b6866
+Status: install ok installed
+
+Package: sqlite3
+Version: 3.47.2
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 3be406d9eb05f47498d04506d16fc77510062a00fc2e85207295940b43a44d80
+Description: SQLite is a software library that implements a self-contained, serverless, zero-configuration, transactional SQL database engine.
+Default-Features: json1
+Status: install ok installed
+
+Package: sqlite3
+Feature: json1
+Architecture: x64-windows
+Multi-Arch: same
+Description: Enable JSON functionality for sqlite3
+Status: install ok installed
+
+Package: sqlitecpp
+Version: 3.3.2
+Depends: sqlite3, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 659b37108aed857f922ac5063b8b518aa1dc5e88711e58fb79c0bcaf3bd282af
+Description: SQLiteC++ (SQLiteCpp) is a smart and easy to use C++ SQLite3 wrapper.
+Default-Features: sqlite
+Status: install ok installed
+
+Package: sqlitecpp
+Feature: sqlite
+Architecture: x64-windows
+Multi-Arch: same
+Description: Deprecated; no effects
+Status: install ok installed
+

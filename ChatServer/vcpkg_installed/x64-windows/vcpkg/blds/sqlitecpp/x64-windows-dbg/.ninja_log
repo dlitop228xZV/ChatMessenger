@@ -1,0 +1,11 @@
+# ninja log v6
+22	622	7899754801180840	CMakeFiles/SQLiteCpp.dir/src/Exception.cpp.obj	eb1febd05f0c1259
+11	668	7899754801070936	CMakeFiles/SQLiteCpp.dir/src/Backup.cpp.obj	b7c389a060272bdc
+45	738	7899754801410800	CMakeFiles/SQLiteCpp.dir/src/Statement.cpp.obj	f777d9a57350e631
+41	742	7899754801370794	CMakeFiles/SQLiteCpp.dir/src/Savepoint.cpp.obj	7a3a875bc93515ab
+15	813	7899754801110806	CMakeFiles/SQLiteCpp.dir/src/Column.cpp.obj	50e1f89a9b9e0d3d
+53	879	7899754801490804	CMakeFiles/SQLiteCpp.dir/src/Transaction.cpp.obj	ea4f594652489c64
+19	918	7899754801140791	CMakeFiles/SQLiteCpp.dir/src/Database.cpp.obj	ee9c08a11a48548d
+923	1262	7899754813348970	bin/SQLiteCpp.dll	a0c10d42896d2065
+923	1262	7899754813348970	SQLiteCpp.lib	a0c10d42896d2065
+1262	1513	7899754813578953	CMakeFiles/install.util	a5221fba6705f077

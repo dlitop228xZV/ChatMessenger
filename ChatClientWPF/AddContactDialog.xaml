@@ -1,0 +1,66 @@
+﻿<Window x:Class="ChatClientWPF.AddContactDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Добавить контакт" Height="250" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ID пользователя -->
+        <TextBlock Grid.Row="0" 
+                   Text="ID пользователя для добавления:" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,5"/>
+
+        <TextBox x:Name="tbFriendId" 
+                 Grid.Row="1" 
+                 Height="30" 
+                 Margin="0,0,0,10" 
+                 Padding="5"/>
+
+        <!-- Поиск по логину -->
+        <TextBlock Grid.Row="2" 
+                   Text="Или найти по логину:" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,5"/>
+
+        <StackPanel Grid.Row="3" 
+                    Orientation="Horizontal"
+                    Margin="0,0,0,20">
+            <TextBox x:Name="tbSearchLogin" 
+                     Width="150" 
+                     Margin="0,0,10,0" 
+                     Padding="5" 
+                     Height="30"/>
+            <Button Content="Найти" 
+                    Click="BtnSearch_Click" 
+                    Padding="10,5" 
+                    Width="80"
+                    Background="#4ecdc4"/>
+        </StackPanel>
+
+        <!-- Кнопки Отмена/Добавить -->
+        <StackPanel Grid.Row="5" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Отмена" 
+                    Click="BtnCancel_Click" 
+                    Margin="0,0,10,0" 
+                    Padding="15,5" 
+                    Width="100"/>
+            <Button Content="Добавить" 
+                    Click="BtnAdd_Click" 
+                    Padding="15,5" 
+                    Width="100" 
+                    Background="#4ecdc4"/>
+        </StackPanel>
+    </Grid>
+</Window>
