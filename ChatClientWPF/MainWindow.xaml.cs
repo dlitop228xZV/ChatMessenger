@@ -41,6 +41,8 @@ namespace ChatClientWPF
             public string UserName { get; set; }
             public string Content { get; set; }
             public string Timestamp { get; set; }
+            public bool IsEdited { get; set; }
+            public bool CanEdit { get; set; }
         }
 
         public class Contact
@@ -56,6 +58,25 @@ namespace ChatClientWPF
             tbUserInfo.Text = "Не авторизован";
             client.Timeout = TimeSpan.FromSeconds(30);
         }
+
+        // Метод для сброса состояния чата
+        private void ResetChatState()
+        {
+            currentChatId = 0;
+            lbMessages.ItemsSource = null;
+            tbMessage.Text = "";
+
+            // Очищаем информацию о чате в строке состояния
+            if (currentUserId == 0)
+            {
+                tbUserInfo.Text = "Не авторизован";
+            }
+            else
+            {
+                tbUserInfo.Text = $"Пользователь: {currentUserName} (ID: {currentUserId}) | Чат не выбран";
+            }
+        }
+
 
         // Регистрация
         private async void BtnRegister_Click(object sender, RoutedEventArgs e)
@@ -101,6 +122,8 @@ namespace ChatClientWPF
         // Вход
         private async void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
+            ResetChatState();
+
             var dialog = new LoginDialog();
             if (dialog.ShowDialog() == true)
             {
@@ -532,7 +555,8 @@ namespace ChatClientWPF
                                 UserId = msg.GetProperty("userId").GetInt32(),
                                 Content = msg.GetProperty("message").GetString(),
                                 Timestamp = msg.GetProperty("sendDate").GetString(),
-                                UserName = $"User{msg.GetProperty("userId").GetInt32()}"
+                                UserName = $"User{msg.GetProperty("userId").GetInt32()}",
+                                CanEdit = msg.GetProperty("userId").GetInt32() == currentUserId
                             };
 
                             messages.Add(message);
@@ -540,7 +564,6 @@ namespace ChatClientWPF
 
                         lbMessages.ItemsSource = messages;
 
-                        // Прокручиваем вниз
                         if (messages.Count > 0)
                         {
                             var lastMessage = messages[messages.Count - 1];
@@ -551,7 +574,7 @@ namespace ChatClientWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки сообщений: {ex.Message}");
+                Console.WriteLine($"Ошибка загрузки сообщений: {ex.Message}");
             }
         }
 
