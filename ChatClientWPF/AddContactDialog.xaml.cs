@@ -15,7 +15,7 @@ namespace ChatClientWPF
         private HttpClient client = new HttpClient();
         private string baseUrl = "http://localhost:18080";
         private int selectedUserId = 0;
-        private string selectedUserLogin = "";
+        private string selectedUserName = "";
 
         // Модель пользователя для поиска
         public class UserSearchResult
@@ -26,7 +26,7 @@ namespace ChatClientWPF
         }
 
         public int FriendId => selectedUserId;
-        public string FriendLogin => selectedUserLogin;
+        public string FriendName => selectedUserName;
 
         public AddContactDialog()
         {
@@ -76,7 +76,13 @@ namespace ChatClientWPF
                         if (users.Count > 0)
                         {
                             lvUsers.ItemsSource = users;
-                            tbSearchResult.Text = $"Найдено {users.Count} пользователь(ей)";
+                            tbSearchResult.Text = $"Найдено {users.Count} пользователь(ей). Выберите одного.";
+
+                            // Если пользователь один - выбираем его автоматически
+                            if (users.Count == 1)
+                            {
+                                lvUsers.SelectedIndex = 0;
+                            }
                         }
                         else
                         {
@@ -88,6 +94,11 @@ namespace ChatClientWPF
                     {
                         tbSearchResult.Text = "Пользователи не найдены";
                     }
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    tbSearchResult.Text = "Пользователи не найдены";
+                    lvUsers.ItemsSource = null;
                 }
                 else
                 {
@@ -104,12 +115,33 @@ namespace ChatClientWPF
             }
         }
 
-        private void BtnAdd_Click(object sender, RoutedEventArgs e)
+        // Обработчик выбора пользователя в списке
+        private void LvUsers_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (lvUsers.SelectedItem is UserSearchResult selectedUser)
             {
                 selectedUserId = selectedUser.Id;
-                selectedUserLogin = selectedUser.Login;
+                selectedUserName = selectedUser.Name;
+                btnAdd.IsEnabled = true;
+                tbSearchResult.Text = $"Выбран: {selectedUser.Name} (Логин: {selectedUser.Login})";
+            }
+            else
+            {
+                selectedUserId = 0;
+                selectedUserName = "";
+                btnAdd.IsEnabled = false;
+                if (lvUsers.ItemsSource != null && ((List<UserSearchResult>)lvUsers.ItemsSource).Count > 0)
+                {
+                    tbSearchResult.Text = "Выберите пользователя из списка";
+                }
+            }
+        }
+
+        // Кнопка Добавить
+        private void BtnAdd_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedUserId > 0)
+            {
                 DialogResult = true;
             }
             else
@@ -119,9 +151,21 @@ namespace ChatClientWPF
             }
         }
 
+        // Кнопка Отмена
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
+        }
+
+        // Двойной клик по пользователю
+        private void LvUsers_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (lvUsers.SelectedItem is UserSearchResult selectedUser)
+            {
+                selectedUserId = selectedUser.Id;
+                selectedUserName = selectedUser.Name;
+                DialogResult = true;
+            }
         }
     }
 }

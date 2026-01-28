@@ -215,31 +215,58 @@ namespace ChatClientWPF
             try
             {
                 var response = await client.GetAsync($"{baseUrl}/contacts/{currentUserId}");
+                var responseString = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Ответ от сервера (контакты): {responseString}"); // Для отладки
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseString = await response.Content.ReadAsStringAsync();
                     var result = JsonSerializer.Deserialize<JsonElement>(responseString);
 
+                    var contacts = new List<Contact>();
+
+                    // Проверяет структуру ответа
                     if (result.TryGetProperty("contacts", out var contactsArray))
                     {
-                        var contacts = new List<Contact>();
                         foreach (var contact in contactsArray.EnumerateArray())
                         {
-                            contacts.Add(new Contact
+                            try
                             {
-                                UserId = contact.GetProperty("userId").GetInt32(),
-                                Name = contact.GetProperty("name").GetString(),
-                                Login = contact.GetProperty("login").GetString()
-                            });
+                                contacts.Add(new Contact
+                                {
+                                    UserId = contact.GetProperty("userId").GetInt32(),
+                                    Name = contact.GetProperty("name").GetString(),
+                                });
+                            }
+                            catch (KeyNotFoundException ex)
+                            {
+                                Console.WriteLine($"Ошибка парсинга контакта: {ex.Message}");
+                                // Пропускаем этот контакт
+                            }
                         }
-
-                        dgContacts.ItemsSource = contacts;
                     }
+                    else
+                    {
+                        Console.WriteLine("Ответ не содержит ключа 'contacts'");
+                    }
+
+                    dgContacts.ItemsSource = contacts;
+
+                    // Если контактов нет
+                    if (contacts.Count == 0)
+                    {
+                        Console.WriteLine("Список контактов пуст");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"Ошибка загрузки контактов: {response.StatusCode}");
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка загрузки контактов: {ex.Message}");
+                Console.WriteLine($"Полная ошибка: {ex}");
             }
         }
 
@@ -295,7 +322,7 @@ namespace ChatClientWPF
             }
         }
 
-        // Добавление контакта
+        // Добавление в контакты
         private async void BtnAddContact_Click(object sender, RoutedEventArgs e)
         {
             if (currentUserId == 0)
@@ -310,10 +337,24 @@ namespace ChatClientWPF
             {
                 try
                 {
+                    int friendId = dialog.FriendId;
+                    string friendName = dialog.FriendName;
+
+                    if (friendId == currentUserId)
+                    {
+                        MessageBox.Show("Нельзя добавить самого себя в контакты!",
+                            "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // Показываем процесс добавления
+                    MessageBox.Show($"Добавляем пользователя '{friendName}' в контакты...",
+                        "Добавление", MessageBoxButton.OK, MessageBoxImage.Information);
+
                     var contactData = new
                     {
                         userId1 = currentUserId,
-                        userId2 = dialog.FriendId
+                        userId2 = friendId
                     };
 
                     var json = JsonSerializer.Serialize(contactData);
@@ -324,20 +365,53 @@ namespace ChatClientWPF
 
                     if (response.IsSuccessStatusCode)
                     {
-                        MessageBox.Show("Контакт добавлен!", "Успех",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        var result = JsonSerializer.Deserialize<JsonElement>(responseString);
+                        int contactId = result.GetProperty("id").GetInt32();
+
+                        MessageBox.Show($"Пользователь '{friendName}' успешно добавлен в контакты!",
+                            "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Обновляем список контактов
                         await LoadContacts();
                     }
                     else
                     {
-                        MessageBox.Show($"Ошибка: {responseString}", "Ошибка",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        // Пытаемся получить сообщение об ошибке
+                        try
+                        {
+                            var errorResult = JsonSerializer.Deserialize<JsonElement>(responseString);
+                            if (errorResult.TryGetProperty("error", out var errorMessage))
+                            {
+                                string error = errorMessage.GetString();
+
+                                if (error == "Contact already exists")
+                                {
+                                    MessageBox.Show($"Пользователь '{friendName}' уже есть в ваших контактах!",
+                                        "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    MessageBox.Show($"Ошибка: {error}",
+                                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                }
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Ошибка сервера: {response.StatusCode}",
+                                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                        catch
+                        {
+                            MessageBox.Show($"Ошибка: {responseString}",
+                                "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Ошибка: {ex.Message}",
+                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
