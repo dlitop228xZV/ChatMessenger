@@ -181,10 +181,6 @@
                                                Binding="{Binding Name}" 
                                                Width="*"
                                                Foreground="Black"/>
-                            <DataGridTextColumn Header="Логин" 
-                                               Binding="{Binding Login}" 
-                                               Width="150"
-                                               Foreground="Black"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

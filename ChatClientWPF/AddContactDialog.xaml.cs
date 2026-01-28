@@ -47,12 +47,11 @@ namespace ChatClientWPF
 
             try
             {
-                // Показываем процесс поиска
-                tbSearchResult.Text = "Поиск пользователя...";
+                // Процесс поиска
                 lvUsers.ItemsSource = null;
                 btnAdd.IsEnabled = false;
 
-                // Реальный запрос к серверу
+                // Запрос к серверу
                 var response = await client.GetAsync($"{baseUrl}/users/search/{login}");
 
                 if (response.IsSuccessStatusCode)
@@ -76,9 +75,8 @@ namespace ChatClientWPF
                         if (users.Count > 0)
                         {
                             lvUsers.ItemsSource = users;
-                            tbSearchResult.Text = $"Найдено {users.Count} пользователь(ей). Выберите одного.";
 
-                            // Если пользователь один - выбираем его автоматически
+                            // Если пользователь один - выбирает его автоматически
                             if (users.Count == 1)
                             {
                                 lvUsers.SelectedIndex = 0;
@@ -86,23 +84,16 @@ namespace ChatClientWPF
                         }
                         else
                         {
-                            tbSearchResult.Text = "Пользователи не найдены";
                             lvUsers.ItemsSource = null;
                         }
-                    }
-                    else
-                    {
-                        tbSearchResult.Text = "Пользователи не найдены";
                     }
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    tbSearchResult.Text = "Пользователи не найдены";
                     lvUsers.ItemsSource = null;
                 }
                 else
                 {
-                    tbSearchResult.Text = "Ошибка при поиске пользователей";
                     MessageBox.Show($"Ошибка сервера: {response.StatusCode}",
                         "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -111,7 +102,6 @@ namespace ChatClientWPF
             {
                 MessageBox.Show($"Ошибка поиска: {ex.Message}",
                     "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                tbSearchResult.Text = "Ошибка при поиске";
             }
         }
 
@@ -123,17 +113,12 @@ namespace ChatClientWPF
                 selectedUserId = selectedUser.Id;
                 selectedUserName = selectedUser.Name;
                 btnAdd.IsEnabled = true;
-                tbSearchResult.Text = $"Выбран: {selectedUser.Name} (Логин: {selectedUser.Login})";
             }
             else
             {
                 selectedUserId = 0;
                 selectedUserName = "";
                 btnAdd.IsEnabled = false;
-                if (lvUsers.ItemsSource != null && ((List<UserSearchResult>)lvUsers.ItemsSource).Count > 0)
-                {
-                    tbSearchResult.Text = "Выберите пользователя из списка";
-                }
             }
         }
 
