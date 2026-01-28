@@ -2,13 +2,9 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <functional>
 #include <crow.h>
 #include <sqlite3.h>
-#include <functional>
-#include <chrono>
-#include <iomanip>
-#include <sstream>
-#include <ctime>
 
 using namespace std;
 
@@ -18,6 +14,20 @@ struct User {
     string name;
     string login;
     string password;
+};
+
+// Структура для информации о пользователе
+struct UserInfo {
+    int id;
+    string name;
+    string login;
+};
+
+// Структура для поиска пользователей
+struct UserSearchResult {
+    int id;
+    string name;
+    string login;
 };
 
 struct Chat {
@@ -48,6 +58,7 @@ class Database {
 private:
     sqlite3* db;
 
+    // Хелпер функция для выполнения SQL запросов
     bool executeSQL(const string& sql,
         const vector<pair<int, string>>& params = {},
         function<void(sqlite3_stmt*)> callback = nullptr) {
@@ -58,6 +69,7 @@ private:
             return false;
         }
 
+        // Биндим параметры
         for (size_t i = 0; i < params.size(); i++) {
             int index = i + 1;
             int type = params[i].first;
@@ -86,7 +98,7 @@ private:
     }
 
 public:
-    Database(const string& dbPath = "ChatMessenger.db") {
+    Database(const string& dbPath = "chat.db") {
         if (sqlite3_open(dbPath.c_str(), &db) != SQLITE_OK) {
             throw runtime_error("Can't open database: " + string(sqlite3_errmsg(db)));
         }
@@ -100,7 +112,7 @@ public:
     }
 
     void createTables() {
-        const char* tables[] = {    
+        const char* tables[] = {
             R"(
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,7 +209,7 @@ public:
     }
 
     // Получение пользователя по ID
-    bool getUserById(int userId, User& user) {
+    bool getUserById(int userId, UserInfo& user) {
         string sql = "SELECT id, name, login FROM users WHERE id = ?";
         vector<pair<int, string>> params = { {SQLITE_INTEGER, to_string(userId)} };
 
@@ -211,6 +223,28 @@ public:
 
         executeSQL(sql, params, callback);
         return found;
+    }
+
+    // Поиск пользователей
+    vector<UserSearchResult> searchUsers(const string& searchQuery) {
+        vector<UserSearchResult> result;
+
+        string sql = "SELECT id, name, login FROM users WHERE (login LIKE ? OR name LIKE ?) AND id > 0";
+        vector<pair<int, string>> params = {
+            {SQLITE_TEXT, "%" + searchQuery + "%"},
+            {SQLITE_TEXT, "%" + searchQuery + "%"}
+        };
+
+        auto callback = [&](sqlite3_stmt* stmt) {
+            UserSearchResult user;
+            user.id = sqlite3_column_int(stmt, 0);
+            user.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            user.login = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+            result.push_back(user);
+            };
+
+        executeSQL(sql, params, callback);
+        return result;
     }
 
     // Создание чата
@@ -229,12 +263,12 @@ public:
 
         int chatId = sqlite3_last_insert_rowid(db);
 
-        // Добавляет всех участников
+        // Добавляем всех участников
         for (int userId : participants) {
             addUserToChat(userId, chatId);
         }
 
-        // Добавляет создателя
+        // Добавляем создателя
         addUserToChat(createdBy, chatId);
 
         return chatId;
@@ -258,7 +292,16 @@ public:
             return -1; // Нельзя добавить самого себя
         }
 
-        // Существует ли уже контакт
+        // Проверяем существование пользователей
+        UserInfo user1, user2;
+        bool user1Exists = getUserById(userId1, user1);
+        bool user2Exists = getUserById(userId2, user2);
+
+        if (!user1Exists || !user2Exists) {
+            return -3; // Один из пользователей не найден
+        }
+
+        // Проверяем, существует ли уже контакт
         string checkSql = R"(
             SELECT id FROM contacts 
             WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?)
@@ -289,13 +332,13 @@ public:
         };
 
         if (!executeSQL(sql, params)) {
-            return -3;
+            return -4; // Ошибка базы данных
         }
 
         return sqlite3_last_insert_rowid(db);
     }
 
-    // Чаты пользователя
+    // Получение чатов пользователя
     vector<Chat> getUserChats(int userId) {
         vector<Chat> result;
 
@@ -323,7 +366,7 @@ public:
         return result;
     }
 
-    // Контакты пользователя
+    // Получение контактов пользователя
     vector<pair<int, string>> getUserContacts(int userId) {
         vector<pair<int, string>> result;
 
@@ -375,7 +418,7 @@ public:
         return sqlite3_last_insert_rowid(db);
     }
 
-    // Сообщения чата
+    // Получение сообщений чата
     vector<Message> getChatMessages(int chatId) {
         vector<Message> result;
 
@@ -396,7 +439,7 @@ public:
             msg.replyId = sqlite3_column_int(stmt, 3);
             msg.sendDate = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
             msg.resendId = sqlite3_column_int(stmt, 5);
-            msg.chatId = chatId; // Устанавливаем chatId из параметра
+            msg.chatId = chatId;
             result.push_back(msg);
             };
 
@@ -429,7 +472,7 @@ public:
         return executeSQL(sql, params);
     }
 
-    // Информация о сообщении
+    // Получение информации о сообщении
     bool getMessageInfo(int messageId, int& userId, string& msg) {
         string sql = "SELECT user_id, msg FROM messages WHERE id = ?";
         vector<pair<int, string>> params = { {SQLITE_INTEGER, to_string(messageId)} };
@@ -452,8 +495,7 @@ private:
     unique_ptr<Database> db;
 
 public:
-    ChatServer() {
-        db = make_unique<Database>();
+    ChatServer() : db(make_unique<Database>()) {
         setupRoutes();
     }
 
@@ -529,7 +571,7 @@ private:
             }
                 });
 
-        // Чаты пользователя
+        // Получение чатов пользователя
         CROW_ROUTE(app, "/chats/<int>").methods("GET"_method)
             ([this](int userId) {
             try {
@@ -607,7 +649,9 @@ private:
             try {
                 auto json_body = crow::json::load(req.body);
                 if (!json_body) {
-                    return crow::response(400, "Invalid JSON");
+                    crow::json::wvalue error;
+                    error["error"] = "Invalid JSON";
+                    return crow::response(400, error);
                 }
 
                 int userId1 = static_cast<int>(json_body["userId1"].i());
@@ -625,13 +669,21 @@ private:
                     return crow::response(400, response);
                 }
                 else if (result == -3) {
-                    response["error"] = "Failed to add contact";
-                    return crow::response(400, response);
+                    response["error"] = "User not found";
+                    return crow::response(404, response);
                 }
-                else {
+                else if (result == -4) {
+                    response["error"] = "Database error";
+                    return crow::response(500, response);
+                }
+                else if (result > 0) {
                     response["id"] = result;
                     response["status"] = "success";
                     return crow::response(200, response);
+                }
+                else {
+                    response["error"] = "Unknown error";
+                    return crow::response(500, response);
                 }
             }
             catch (const exception& e) {
@@ -660,6 +712,62 @@ private:
                 response["contacts"] = move(contactList);
 
                 return crow::response(200, response);
+            }
+            catch (const exception& e) {
+                crow::json::wvalue error;
+                error["error"] = string("Error: ") + e.what();
+                return crow::response(500, error);
+            }
+                });
+
+        // Поиск пользователей
+        CROW_ROUTE(app, "/users/search/<string>").methods("GET"_method)
+            ([this](const string& searchQuery) {
+            try {
+                auto users = db->searchUsers(searchQuery);
+
+                crow::json::wvalue response;
+                response["status"] = "success";
+
+                crow::json::wvalue::list usersList;
+                for (const auto& user : users) {
+                    crow::json::wvalue userJson;
+                    userJson["id"] = user.id;
+                    userJson["name"] = user.name;
+                    userJson["login"] = user.login;
+                    usersList.push_back(userJson);
+                }
+                response["users"] = move(usersList);
+
+                return crow::response(200, response);
+            }
+            catch (const exception& e) {
+                crow::json::wvalue error;
+                error["error"] = string("Error: ") + e.what();
+                return crow::response(500, error);
+            }
+                });
+
+        // Получение пользователя по ID
+        CROW_ROUTE(app, "/users/<int>").methods("GET"_method)
+            ([this](int userId) {
+            try {
+                UserInfo user;
+                bool found = db->getUserById(userId, user);
+
+                if (found) {
+                    crow::json::wvalue response;
+                    response["id"] = user.id;
+                    response["name"] = user.name;
+                    response["login"] = user.login;
+                    response["status"] = "success";
+                    return crow::response(200, response);
+                }
+                else {
+                    crow::json::wvalue error;
+                    error["error"] = "User not found";
+                    return crow::response(404, error);
+                }
             }
             catch (const exception& e) {
                 crow::json::wvalue error;
@@ -816,7 +924,7 @@ private:
                 int targetChatId = static_cast<int>(json_body["targetChatId"].i());
                 int userId = static_cast<int>(json_body["userId"].i());
 
-                // Информация о пересылаемом сообщении
+                // Получаем информацию о пересылаемом сообщении
                 int originalUserId;
                 string originalMsg;
                 if (!db->getMessageInfo(originalMsgId, originalUserId, originalMsg)) {
@@ -825,7 +933,7 @@ private:
                     return crow::response(404, error);
                 }
 
-                // Пересланное сообщение
+                // Отправляем пересланное сообщение
                 string forwardedMsg = "[Forwarded] " + originalMsg;
                 int messageId = db->sendMessage(userId, targetChatId, forwardedMsg, 0, originalUserId);
 
@@ -841,6 +949,7 @@ private:
             }
                 });
 
+        // Проверка работы сервера
         CROW_ROUTE(app, "/")([]() {
             return "Chat Messenger Server is running!";
             });
